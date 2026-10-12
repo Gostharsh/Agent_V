@@ -1,9 +1,12 @@
 
-from unittest.mock import MagicMock, patch
 import base64
-from test_vision import make_red_rectangle_png
-import pytest
+from io import BytesIO
+from unittest.mock import MagicMock, patch
 
+import pytest
+from PIL import Image
+
+from test_vision import make_red_rectangle_png
 from vision_agent.vision import describe_image
 
 
@@ -82,4 +85,97 @@ def test_describe_image_rejects_corrupted_png_with_valid_signature(tmp_path):
         with patch("vision_agent.vision.ChatOllama") as model_class:
             describe_image(str(path), "What is shown?")
             model_class.assert_not_called()
+
+
+
+
+
+def make_test_image(image_format: str) -> bytes:
+    """Create a small valid image for format-specific tests."""
+    buffer = BytesIO()
+    Image.new("RGB", (8, 8), color="red").save(
+        buffer,
+        format=image_format,
+    )
+    return buffer.getvalue()
+
+
+@pytest.mark.parametrize(
+    ("extension", "image_format", "mime_type"),
+    [
+        (".png", "PNG", "image/png"),
+        (".jpg", "JPEG", "image/jpeg"),
+        (".jpeg", "JPEG", "image/jpeg"),
+        (".webp", "WEBP", "image/webp"),
+    ],
+)
+def test_describe_image_accepts_supported_formats(
+    tmp_path,
+    extension,
+    image_format,
+    mime_type,
+):
+    path = tmp_path / f"valid{extension}"
+    path.write_bytes(make_test_image(image_format))
+
+    fake_response = MagicMock()
+    fake_response.content = "A red image."
+
+    with patch("vision_agent.vision.ChatOllama") as model_class:
+        model_class.return_value.invoke.return_value = fake_response
+
+        result = describe_image(str(path), "Describe this image")
+
+    assert result == "A red image."
+    model_class.assert_called_once()
+    message = model_class.return_value.invoke.call_args.args[0][0]
+    image_content = message.content[1]
+    assert image_content["mime_type"] == mime_type
+
+
+@pytest.mark.parametrize(
+    ("extension", "image_format"),
+    [
+        (".png", "JPEG"),
+        (".jpg", "PNG"),
+        (".webp", "PNG"),
+    ],
+)
+def test_describe_image_rejects_mismatched_extension(
+    tmp_path,
+    extension,
+    image_format,
+):
+    path = tmp_path / f"mismatched{extension}"
+    path.write_bytes(make_test_image(image_format))
+
+    with patch("vision_agent.vision.ChatOllama") as model_class:
+        with pytest.raises(ValueError, match="Invalid image"):
+            describe_image(str(path), "Describe this image")
+
+        model_class.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("extension", "image_format"),
+    [
+        (".jpg", "JPEG"),
+        (".webp", "WEBP"),
+    ],
+)
+def test_describe_image_rejects_truncated_formats(
+    tmp_path,
+    extension,
+    image_format,
+):
+    path = tmp_path / f"truncated{extension}"
+    valid_data = make_test_image(image_format)
+    path.write_bytes(valid_data[:12])
+
+    with patch("vision_agent.vision.ChatOllama") as model_class:
+        with pytest.raises(ValueError):
+            describe_image(str(path), "Describe this image")
+
+        model_class.assert_not_called()
+
 
