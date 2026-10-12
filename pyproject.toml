@@ -10,6 +10,7 @@ dependencies = [
     "langgraph",
     "langchain-ollama",
     "pillow",
+    "mss>=10.2,<11",
 ]
 [project.optional-dependencies]
 dev = ["pytest"]
