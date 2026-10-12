@@ -1,10 +1,10 @@
 
 import base64
-# from tests.test_vision import make_red_rectangle_png
 import mimetypes
+from io import BytesIO
 from pathlib import Path
 
-
+from PIL import Image, UnidentifiedImageError
 from langchain_core.messages import HumanMessage
 from langchain_ollama import ChatOllama
 
@@ -41,6 +41,16 @@ def _validate_image_signature(image_data: bytes, suffix: str) -> None:
         raise ValueError("Invalid image data")
 
 
+def _validate_image_decoding(image_data: bytes) -> None:
+    """Reject image data that cannot be verified as a valid image."""
+    try:
+        with Image.open(BytesIO(image_data)) as image:
+            image.verify()
+    except (UnidentifiedImageError, OSError, SyntaxError, ValueError) as exc:
+        raise ValueError("Invalid or corrupted image data") from exc
+
+
+
 
 def describe_image(image_path: str, question: str) -> str:
     """Answer a question about a local image using Qwen3-VL."""
@@ -69,6 +79,8 @@ def describe_image(image_path: str, question: str) -> str:
     # image_data = base64.b64encode(path.read_bytes()).decode("ascii")
     raw_image_data = path.read_bytes()
     _validate_image_signature(raw_image_data, path.suffix.lower())
+    _validate_image_decoding(raw_image_data)
+
     image_data = base64.b64encode(raw_image_data).decode("ascii")
 
     model = ChatOllama(model=MODEL_NAME, temperature=0)

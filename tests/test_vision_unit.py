@@ -59,3 +59,27 @@ def test_describe_image_rejects_invalid_image_data(tmp_path):
 
     with pytest.raises(ValueError, match="Invalid image"):
         describe_image(str(path), "What is shown?")
+
+
+
+
+def test_describe_image_rejects_truncated_png(tmp_path):
+    path = tmp_path / "truncated.png"
+    valid_png = base64.b64decode(make_red_rectangle_png())
+    path.write_bytes(valid_png[:32])
+
+    with pytest.raises(ValueError, match="Invalid or corrupted image"):
+        with patch("vision_agent.vision.ChatOllama") as model_class:
+            describe_image(str(path), "What is shown?")
+            model_class.assert_not_called()
+
+
+def test_describe_image_rejects_corrupted_png_with_valid_signature(tmp_path):
+    path = tmp_path / "corrupted.png"
+    path.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 64)
+
+    with pytest.raises(ValueError, match="Invalid or corrupted image"):
+        with patch("vision_agent.vision.ChatOllama") as model_class:
+            describe_image(str(path), "What is shown?")
+            model_class.assert_not_called()
+
