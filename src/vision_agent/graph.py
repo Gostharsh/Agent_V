@@ -8,6 +8,7 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.checkpoint.memory import InMemorySaver
 
 from vision_agent.tools import TOOLS, _evaluate_expression, calculator
+from vision_agent.screen_observation import ScreenObservationController
 
 
 MODEL_NAME = "qwen3-vl:latest"
@@ -23,6 +24,9 @@ class AgentState(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
     owner_id: str
     memories: list[str]
+
+class AgentContext(TypedDict, total=False):
+    screen_observation_controller: ScreenObservationController
 
 
 def invoke_model(messages):
@@ -99,7 +103,7 @@ def load_memory(state: AgentState) -> dict:
 
 
 def build_graph(checkpointer=None):
-    graph = StateGraph(AgentState)
+    graph = StateGraph(AgentState, context_schema=AgentContext)
 
     graph.add_node("memory", load_memory)
     graph.add_node("agent", call_model)
@@ -120,8 +124,12 @@ def run_agent(
     message: str,
     thread_id: str = "default",
     owner_id: str = "default",
+    screen_observation_controller: ScreenObservationController | None = None,
 ) -> str:
     """Run one task within a persistent conversation thread."""
+    context: AgentContext = {}
+    if screen_observation_controller is not None:
+        context["screen_observation_controller"] = screen_observation_controller
     result = agent.invoke(
         {"messages": [HumanMessage(content=message)],
          "owner_id": owner_id,
@@ -133,6 +141,7 @@ def run_agent(
                 "owner_id": owner_id,
             },
         },
+        context=context,
     )
 
     for item in reversed(result["messages"]):

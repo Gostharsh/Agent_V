@@ -171,7 +171,13 @@ def test_graph_executes_analyze_image_tool(tmp_path):
 def test_tool_registry_contains_expected_tools():
     names = {registered_tool.name for registered_tool in TOOLS}
 
-    assert names == {"calculator", "get_current_time", "remember_memory","analyze_image"}
+    assert names == {
+        "calculator",
+        "get_current_time",
+        "remember_memory",
+        "analyze_image",
+        "analyze_current_screen",
+    }
 
 
 
@@ -623,3 +629,52 @@ def test_calculator_rejects_expression_longer_than_limit():
 
     assert result.startswith("Calculator error:")
     assert "too long" in result.lower()
+
+
+
+
+def test_build_graph_declares_screen_context():
+    from vision_agent.graph import AgentContext, build_graph
+
+    graph = build_graph()
+
+    assert "screen_observation_controller" in AgentContext.__annotations__
+    assert graph is not None
+
+
+def test_run_agent_passes_screen_controller_in_context():
+    from unittest.mock import patch
+    from langchain_core.messages import AIMessage
+    from vision_agent.graph import run_agent
+
+    controller = object()
+
+    with patch("vision_agent.graph.agent") as mock_agent:
+        mock_agent.invoke.return_value = {
+            "messages": [AIMessage(content="Screen analysis complete.")]
+        }
+
+        result = run_agent(
+            "Describe my screen",
+            screen_observation_controller=controller,
+        )
+
+    assert result == "Screen analysis complete."
+    kwargs = mock_agent.invoke.call_args.kwargs
+    assert kwargs["context"]["screen_observation_controller"] is controller
+
+
+def test_run_agent_uses_empty_context_without_controller():
+    from unittest.mock import patch
+    from langchain_core.messages import AIMessage
+    from vision_agent.graph import run_agent
+
+    with patch("vision_agent.graph.agent") as mock_agent:
+        mock_agent.invoke.return_value = {
+            "messages": [AIMessage(content="Hello.")]
+        }
+
+        result = run_agent("Hello")
+
+    assert result == "Hello."
+    assert mock_agent.invoke.call_args.kwargs["context"] == {}

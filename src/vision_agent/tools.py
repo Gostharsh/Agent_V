@@ -3,14 +3,15 @@ import ast
 import operator
 import math
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Literal, TypedDict
 
 from langchain_core.messages import AnyMessage
 from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
 from vision_agent.vision import describe_image
-
 from vision_agent.memory import store_memory_candidate
+from langgraph.prebuilt import ToolRuntime
+
 
 
 # Explicitly permit only basic arithmetic operations.
@@ -167,7 +168,51 @@ def analyze_image(image_path: str, question: str) -> str:
         return "Image analysis failed due to an unexpected error."
 
 
+class ScreenObservationContext(TypedDict, total=False):
+    screen_observation_controller: object
+
+
+
+
+@tool
+def analyze_current_screen(
+    question: str,
+    runtime: ToolRuntime[ScreenObservationContext, dict],
+) -> str:
+    """Answer a question about the current screen using an existing observation.
+
+    Use only when screen observation has already been explicitly activated.
+    This tool never starts or polls screen capture.
+    """
+    context = runtime.context
+    controller = (
+        context.get("screen_observation_controller")
+        if isinstance(context, dict)
+        else None
+    )
+
+    if controller is None:
+        return "Screen analysis error: no screen observation controller is configured."
+
+    try:
+        from vision_agent.screen_vision import analyze_current_screen as analyze
+
+        return analyze(controller, question)
+    except RuntimeError as exc:
+        return f"Screen analysis error: {exc}"
+    except ValueError as exc:
+        return f"Screen analysis error: {exc}"
+    except Exception:
+        return "Screen analysis failed due to an unexpected error."
+
+
 
 
 # The single registry used for model tool binding and graph execution.
-TOOLS = [calculator, get_current_time, remember_memory,analyze_image]
+TOOLS = [
+    calculator,
+    get_current_time,
+    remember_memory,
+    analyze_image,
+    analyze_current_screen,
+]
