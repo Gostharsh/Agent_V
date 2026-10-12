@@ -1,7 +1,9 @@
 
 import base64
+# from tests.test_vision import make_red_rectangle_png
 import mimetypes
 from pathlib import Path
+
 
 from langchain_core.messages import HumanMessage
 from langchain_ollama import ChatOllama
@@ -15,6 +17,29 @@ SUPPORTED_IMAGE_TYPES = {
     ".jpeg",
     ".webp",
 }
+
+
+def _validate_image_signature(image_data: bytes, suffix: str) -> None:
+    """Reject image files whose contents don't match their extension."""
+    valid = False
+
+    if suffix == ".png":
+        valid = image_data.startswith(b"\x89PNG\r\n\x1a\n")
+    elif suffix in {".jpg", ".jpeg"}:
+        valid = (
+            len(image_data) >= 3
+            and image_data.startswith(b"\xff\xd8\xff")
+        )
+    elif suffix == ".webp":
+        valid = (
+            len(image_data) >= 12
+            and image_data.startswith(b"RIFF")
+            and image_data[8:12] == b"WEBP"
+        )
+
+    if not valid:
+        raise ValueError("Invalid image data")
+
 
 
 def describe_image(image_path: str, question: str) -> str:
@@ -41,7 +66,10 @@ def describe_image(image_path: str, question: str) -> str:
     }:
         raise ValueError("Unsupported image MIME type")
 
-    image_data = base64.b64encode(path.read_bytes()).decode("ascii")
+    # image_data = base64.b64encode(path.read_bytes()).decode("ascii")
+    raw_image_data = path.read_bytes()
+    _validate_image_signature(raw_image_data, path.suffix.lower())
+    image_data = base64.b64encode(raw_image_data).decode("ascii")
 
     model = ChatOllama(model=MODEL_NAME, temperature=0)
 

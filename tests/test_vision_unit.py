@@ -1,6 +1,7 @@
 
 from unittest.mock import MagicMock, patch
-
+import base64
+from test_vision import make_red_rectangle_png
 import pytest
 
 from vision_agent.vision import describe_image
@@ -31,7 +32,8 @@ def test_describe_image_rejects_unsupported_format(tmp_path):
 
 def test_describe_image_calls_model(tmp_path):
     path = tmp_path / "sample.png"
-    path.write_bytes(b"test image bytes")
+    # path.write_bytes(b"test image bytes")
+    path.write_bytes(base64.b64decode(make_red_rectangle_png()))
 
     fake_response = MagicMock()
     fake_response.content = "A red rectangle."
@@ -47,3 +49,13 @@ def test_describe_image_calls_model(tmp_path):
         temperature=0,
     )
     model_class.return_value.invoke.assert_called_once()
+
+
+
+
+def test_describe_image_rejects_invalid_image_data(tmp_path):
+    path = tmp_path / "invalid.png"
+    path.write_bytes(b"this is not a valid PNG image")
+
+    with pytest.raises(ValueError, match="Invalid image"):
+        describe_image(str(path), "What is shown?")

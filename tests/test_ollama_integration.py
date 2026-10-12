@@ -34,7 +34,10 @@ def test_real_qwen_model_responds():
     assert isinstance(assistant_messages[-1].content, str)
     assert assistant_messages[-1].content.strip()
 
-
+@pytest.mark.skipif(
+    os.getenv("RUN_OLLAMA_TESTS") != "1",
+    reason="Set RUN_OLLAMA_TESTS=1 to run live Ollama tests",
+)
 
 def test_real_qwen_uses_calculator_tool():
     result = agent.invoke(

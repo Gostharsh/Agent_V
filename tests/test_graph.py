@@ -5,7 +5,15 @@ from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from vision_agent.graph import build_graph, call_model, calculator
 from vision_agent.tools import TOOLS
 import pytest
+from unittest.mock import patch
 
+@pytest.fixture(autouse=True)
+def mock_memory_retrieval():
+    with patch(
+        "vision_agent.memory.retrieve_memories",
+        return_value=[],
+    ):
+        yield
 
 def test_call_model_returns_assistant_message():
     """The model node should append the assistant's response."""
@@ -19,11 +27,28 @@ def test_call_model_returns_assistant_message():
     assert result["messages"] == [expected]
 
 
+# def test_graph_passes_state_to_model():
+#     """The compiled graph should preserve conversation history."""
+#     expected = AIMessage(content="Graph executed successfully")
+
+#     with patch("vision_agent.graph.invoke_model", return_value=expected):
+#         graph = build_graph()
+#         result = graph.invoke(
+#             {"messages": [HumanMessage(content="Test Vision Agent")]}
+#         )
+
+#     assert result["messages"][0].content == "Test Vision Agent"
+#     assert result["messages"][-1].content == "Graph executed successfully"
+
+
 def test_graph_passes_state_to_model():
     """The compiled graph should preserve conversation history."""
     expected = AIMessage(content="Graph executed successfully")
 
-    with patch("vision_agent.graph.invoke_model", return_value=expected):
+    with patch(
+        "vision_agent.graph.invoke_model",
+        return_value=expected,
+    ):
         graph = build_graph()
         result = graph.invoke(
             {"messages": [HumanMessage(content="Test Vision Agent")]}
@@ -31,7 +56,6 @@ def test_graph_passes_state_to_model():
 
     assert result["messages"][0].content == "Test Vision Agent"
     assert result["messages"][-1].content == "Graph executed successfully"
-
 
 def test_call_model_propagates_model_errors():
     """Model errors should not be silently swallowed."""

@@ -120,7 +120,32 @@ def test_retrieve_memories_rejects_invalid_arguments(
 def test_retrieve_memories_scopes_database_query_to_owner():
     from vision_agent.memory import _retrieve_memories
 
-    with patch("vision_agent.memory.GraphDatabase.driver") as mock_driver:
+    # with patch("vision_agent.memory.GraphDatabase.driver") as mock_driver:
+    #     mock_session = mock_driver.return_value.__enter__.return_value
+    #     mock_session.execute_query.return_value = (
+    #         [{"text": "Owner-specific memory"}],
+    #         None,
+    #         None,
+    #     )
+
+    #     result = _retrieve_memories(
+    #         embedding=[0.1, 0.2, 0.3],
+    #         owner_id="user-1",
+    #         limit=5,
+    #     )
+    
+    with (
+        patch.dict(
+            "os.environ",
+            {
+                "NEO4J_URI": "bolt://localhost:7687",
+                "NEO4J_USERNAME": "test-user",
+                "NEO4J_PASSWORD": "test-password",
+                "NEO4J_DATABASE": "neo4j",
+            },
+        ),
+        patch("vision_agent.memory.GraphDatabase.driver") as mock_driver,
+    ):
         mock_session = mock_driver.return_value.__enter__.return_value
         mock_session.execute_query.return_value = (
             [{"text": "Owner-specific memory"}],
@@ -133,6 +158,7 @@ def test_retrieve_memories_scopes_database_query_to_owner():
             owner_id="user-1",
             limit=5,
         )
+
 
     assert result == ["Owner-specific memory"]
     query = mock_session.execute_query.call_args.args[0]
