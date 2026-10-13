@@ -11,6 +11,7 @@ from langgraph.prebuilt import InjectedState
 from vision_agent.vision import describe_image
 from vision_agent.memory import store_memory_candidate
 from langgraph.prebuilt import ToolRuntime
+from vision_agent.windows_actions import open_notepad_and_type
 
 
 
@@ -96,7 +97,7 @@ def calculator(expression: str) -> str:
         RecursionError,
     ) as exc:
         return f"Calculator error: {exc}"
-    
+
 @tool
 def get_current_time() -> str:
     """Get the current local system time and UTC offset."""
@@ -205,7 +206,14 @@ def analyze_current_screen(
     except Exception:
         return "Screen analysis failed due to an unexpected error."
 
+@tool
+def open_notepad_and_type_text(text: str) -> str:
+    """Open Windows Notepad and type the user's explicitly requested text.
 
+    Use only when the user explicitly asks to open Notepad and enter text.
+    Never use for passwords, secrets, or sensitive information.
+    """
+    return open_notepad_and_type(text)
 
 
 # The single registry used for model tool binding and graph execution.
@@ -215,4 +223,5 @@ TOOLS = [
     remember_memory,
     analyze_image,
     analyze_current_screen,
+    open_notepad_and_type_text,
 ]

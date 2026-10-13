@@ -55,6 +55,9 @@ def call_model(state: AgentState) -> dict:
             "cannot access the screen without first calling the tool. "
             "If the tool returns an error, explain that error honestly "
             "and do not invent screen contents. "
+            "When the user explicitly asks you to open Notepad and type text, "
+            "use open_notepad_and_type_text. Report success only if the tool "
+            "confirms that the requested text was sent. "
 
         )
     )
