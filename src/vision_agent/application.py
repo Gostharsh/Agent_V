@@ -27,7 +27,8 @@ class VisionAgentApplication:
 
         if thread_id is not None and (
             not isinstance(thread_id, str) or not thread_id.strip()
-        ):  raise ValueError("thread_id must be a non-empty string when provided")
+        ):
+            raise ValueError("thread_id must be a non-empty string when provided")
         if not isinstance(owner_id, str) or not owner_id.strip():
             raise ValueError("owner_id must be a non-empty string")
 

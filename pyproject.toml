@@ -11,6 +11,7 @@ dependencies = [
     "langchain-ollama",
     "pillow",
     "mss>=10.2,<11",
+    "PySide6",
 ]
 [project.optional-dependencies]
 dev = ["pytest"]
@@ -18,3 +19,5 @@ dev = ["pytest"]
 where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+[project.scripts]
+vision-agent = "vision_agent.desktop:main"
