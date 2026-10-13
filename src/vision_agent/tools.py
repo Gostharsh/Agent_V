@@ -11,7 +11,8 @@ from langgraph.prebuilt import InjectedState
 from vision_agent.vision import describe_image
 from vision_agent.memory import store_memory_candidate
 from langgraph.prebuilt import ToolRuntime
-from vision_agent.windows_actions import open_notepad_and_type
+from vision_agent.windows_actions import open_notepad_and_type, click_screen_position
+
 
 
 
@@ -215,6 +216,15 @@ def open_notepad_and_type_text(text: str) -> str:
     """
     return open_notepad_and_type(text)
 
+@tool
+def click_screen_position_tool(x: int, y: int) -> str:
+    """Click a specific screen coordinate when the user explicitly requests it.
+
+    Coordinates must be known or grounded in a recent screen observation.
+    Do not guess coordinates or click destructive or sensitive controls.
+    """
+    return click_screen_position(x, y)
+
 
 # The single registry used for model tool binding and graph execution.
 TOOLS = [
@@ -224,4 +234,5 @@ TOOLS = [
     analyze_image,
     analyze_current_screen,
     open_notepad_and_type_text,
+    click_screen_position_tool,
 ]

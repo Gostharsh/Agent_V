@@ -58,6 +58,10 @@ def call_model(state: AgentState) -> dict:
             "When the user explicitly asks you to open Notepad and type text, "
             "use open_notepad_and_type_text. Report success only if the tool "
             "confirms that the requested text was sent. "
+            "When the user explicitly requests a screen-coordinate click, use "
+            "click_screen_position_tool only when the coordinates are known from "
+            "a recent screen observation or explicitly supplied by the user. "
+            "Never guess coordinates. "
 
         )
     )

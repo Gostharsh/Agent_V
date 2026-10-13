@@ -69,3 +69,23 @@ def open_notepad_and_type(text: str) -> str:
 
     except Exception:
         return "Windows action error: could not complete the Notepad action."
+
+
+def click_screen_position(x: int, y: int) -> str:
+    """Click a validated screen coordinate."""
+    if type(x) is not int or type(y) is not int:
+        return "Windows action error: coordinates must be integers."
+
+    try:
+        screen_width, screen_height = pyautogui.size()
+    except Exception:
+        return "Windows action error: could not determine screen dimensions."
+
+    if not (0 <= x < screen_width and 0 <= y < screen_height):
+        return "Windows action error: coordinates are outside the screen."
+
+    try:
+        pyautogui.click(x=x, y=y)
+        return f"Clicked screen position ({x}, {y})."
+    except Exception:
+        return "Windows action error: click failed."

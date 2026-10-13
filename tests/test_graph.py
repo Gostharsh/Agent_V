@@ -178,6 +178,7 @@ def test_tool_registry_contains_expected_tools():
         "analyze_image",
         "analyze_current_screen",
         "open_notepad_and_type_text",
+        "click_screen_position_tool",
     }
 
 
