@@ -48,8 +48,9 @@ def test_describe_image_calls_model(tmp_path):
 
     assert result == "A red rectangle."
     model_class.assert_called_once_with(
-        model="qwen3-vl:latest",
+        model="qwen3.5:latest",
         temperature=0,
+        reasoning=False,
     )
     model_class.return_value.invoke.assert_called_once()
 

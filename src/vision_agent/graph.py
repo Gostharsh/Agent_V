@@ -48,6 +48,14 @@ def call_model(state: AgentState) -> dict:
             "remember or save information for future conversations. "
             "Never save information just because it appears in the conversation. "
             "If the memory tool rejects a candidate, tell the user it was not saved."
+            "When the user asks about the current screen, visible windows, "
+            "on-screen text, or what is displayed, you MUST call "
+            "analyze_current_screen with the user's question. "
+            "Do not claim that screen observation is inactive or that you "
+            "cannot access the screen without first calling the tool. "
+            "If the tool returns an error, explain that error honestly "
+            "and do not invent screen contents. "
+
         )
     )
 

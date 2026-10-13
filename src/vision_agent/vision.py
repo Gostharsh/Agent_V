@@ -83,7 +83,11 @@ def describe_image(image_path: str, question: str) -> str:
 
     image_data = base64.b64encode(raw_image_data).decode("ascii")
 
-    model = ChatOllama(model=MODEL_NAME, temperature=0)
+    model = ChatOllama(
+                model="qwen3.5:latest",
+                temperature=0,
+                reasoning=False,
+            )
 
     message = HumanMessage(
         content=[
@@ -133,7 +137,11 @@ def describe_image_bytes(image_data: bytes, question: str) -> str:
         raise ValueError("Invalid or corrupted PNG image data") from exc
 
     encoded_image = base64.b64encode(image_data).decode("ascii")
-    model = ChatOllama(model=MODEL_NAME, temperature=0)
+    model = ChatOllama(
+                model="qwen3.5:latest",
+                temperature=0,
+                reasoning=False,
+            )
 
     message = HumanMessage(
         content=[

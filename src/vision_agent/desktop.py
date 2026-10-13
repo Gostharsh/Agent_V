@@ -345,6 +345,8 @@ class VisionAgentWindow(QMainWindow):
 
         def run_operation() -> tuple[str, str]:
             if operation == "ask":
+                if self._agent_app.status.observation_active:
+                    self._agent_app.poll_screen_observation()
                 return message, self._agent_app.ask(message)
             if operation == "start_observation":
                 self._agent_app.start_screen_observation()

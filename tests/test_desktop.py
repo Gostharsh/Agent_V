@@ -166,6 +166,8 @@ class FakeApplication:
 
         return Status(self.observation_active)
 
+    def poll_screen_observation(self):
+        self.messages.append("screen_polled")
     def ask(self, message):
         self.ask_thread = threading.current_thread()
         self.messages.append(message)
@@ -218,6 +220,26 @@ def test_window_does_not_close_injected_application(qt_app):
 
     assert not app.closed
 
+
+def test_screen_question_polls_observation_before_asking(qt_app):
+    app = FakeApplication()
+    app.observation_active = True
+    window = VisionAgentWindow(app)
+
+    window.message_input.setText("What is on my screen?")
+    window._send_message()
+
+    assert wait_until(
+        qt_app,
+        lambda: (
+            "Vision Agent: Reply to: What is on my screen?"
+            in window.chat_history.toPlainText()
+            and window.send_button.isEnabled()
+        ),
+    )
+
+    assert app.messages == ["screen_polled", "What is on my screen?"]
+    window.close()
 
 def test_send_runs_agent_in_background_and_displays_reply(qt_app):
     app = FakeApplication()
