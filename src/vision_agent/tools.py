@@ -217,14 +217,39 @@ def open_notepad_and_type_text(text: str) -> str:
     """
     return open_notepad_and_type(text)
 
-@tool
-def click_screen_position_tool(x: int, y: int) -> str:
-    """Click a specific screen coordinate when the user explicitly requests it.
 
-    Coordinates must be known or grounded in a recent screen observation.
-    Do not guess coordinates or click destructive or sensitive controls.
+@tool
+def click_screen_position_tool(
+    x: int,
+    y: int,
+    runtime: ToolRuntime[ScreenObservationContext, dict],
+) -> str:
+    """Click a screen coordinate only with a fresh screen observation.
+
+    Coordinates must be grounded in a recent observation or explicitly
+    supplied by the user. Observation must be active. Never guess
+    coordinates or click destructive or sensitive controls.
     """
+    context = runtime.context
+    controller = (
+        context.get("screen_observation_controller")
+        if isinstance(context, dict)
+        else None
+    )
+
+    if controller is None:
+        return (
+            "Mouse action error: no screen observation controller "
+            "is configured."
+        )
+
+    try:
+        controller.get_fresh_observation()
+    except (RuntimeError, ValueError) as exc:
+        return f"Mouse action error: {exc}"
+
     return click_screen_position(x, y)
+
 
 
 @tool

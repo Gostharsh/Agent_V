@@ -1,5 +1,6 @@
 from io import BytesIO
 from unittest.mock import patch
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from PIL import Image
@@ -35,7 +36,7 @@ def make_png():
     return buffer.getvalue()
 
 
-def make_controller():
+def make_controller(wall_clock=None):
     data = make_png()
     frame = ScreenFrame(
         data=data,
@@ -46,7 +47,10 @@ def make_controller():
         ),
     )
     service = FakeCaptureService(frame)
-    controller = ScreenObservationController(service)
+    controller = ScreenObservationController(
+        service,
+        wall_clock=wall_clock,
+    )
     return controller, service, data
 
 
@@ -114,3 +118,43 @@ def test_screen_vision_rejects_controller_after_stop():
             analyze_current_screen(controller, "Describe the screen")
 
     analyze.assert_not_called()
+
+
+
+def test_screen_vision_rejects_stale_observation():
+    now = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+    controller, service, _ = make_controller(
+        wall_clock=lambda: now,
+    )
+    controller.start()
+
+    try:
+        controller.poll()
+        # Replace the frame's capture time with an old timestamp.
+        from dataclasses import replace
+
+        observation = controller.latest_observation
+        assert observation is not None
+        stale_frame = replace(
+            observation.frame,
+            captured_at=now - timedelta(seconds=10),
+        )
+        from vision_agent.screen_observation import ScreenObservation
+
+        controller._latest_observation = replace(
+            observation,
+            frame=stale_frame,
+        )
+
+        from vision_agent.screen_vision import analyze_current_screen
+
+        with patch(
+            "vision_agent.screen_vision.describe_image_bytes"
+        ) as analyze:
+            with pytest.raises(RuntimeError, match="stale"):
+                analyze_current_screen(controller, "Describe the screen")
+
+        analyze.assert_not_called()
+        assert service.captures == 1
+    finally:
+        controller.stop()
