@@ -11,7 +11,8 @@ from langgraph.prebuilt import InjectedState
 from vision_agent.vision import describe_image
 from vision_agent.memory import store_memory_candidate
 from langgraph.prebuilt import ToolRuntime
-from vision_agent.windows_actions import open_notepad_and_type, click_screen_position
+from vision_agent.windows_actions import open_notepad_and_type, click_screen_position, press_keyboard_action
+
 
 
 
@@ -226,6 +227,16 @@ def click_screen_position_tool(x: int, y: int) -> str:
     return click_screen_position(x, y)
 
 
+@tool
+def press_keyboard_action_tool(key: str, expected_window_title: str) -> str:
+    """Send an approved key or shortcut to a verified active window.
+
+    Use only approved keys and shortcuts. Confirm the target window title
+    before acting. Never use unapproved shortcuts or guess the target.
+    """
+    return press_keyboard_action(key, expected_window_title)
+
+
 # The single registry used for model tool binding and graph execution.
 TOOLS = [
     calculator,
@@ -235,4 +246,5 @@ TOOLS = [
     analyze_current_screen,
     open_notepad_and_type_text,
     click_screen_position_tool,
+    press_keyboard_action_tool,
 ]

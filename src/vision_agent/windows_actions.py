@@ -89,3 +89,61 @@ def click_screen_position(x: int, y: int) -> str:
         return f"Clicked screen position ({x}, {y})."
     except Exception:
         return "Windows action error: click failed."
+
+
+
+
+ALLOWED_KEYS = {
+    "ENTER",
+    "ESC",
+    "TAB",
+    "SPACE",
+    "BACKSPACE",
+    "DELETE",
+    "UP",
+    "DOWN",
+    "LEFT",
+    "RIGHT",
+}
+
+ALLOWED_SHORTCUTS = {
+    "CTRL+A": ["ctrl", "a"],
+    "CTRL+C": ["ctrl", "c"],
+    "CTRL+V": ["ctrl", "v"],
+    "CTRL+S": ["ctrl", "s"],
+    "CTRL+Z": ["ctrl", "z"],
+    "CTRL+Y": ["ctrl", "y"],
+}
+
+
+def press_keyboard_action(key: str, expected_window_title: str) -> str:
+    """Press an approved key only when the expected window is active."""
+    if not isinstance(key, str) or not isinstance(expected_window_title, str):
+        return "Windows action error: key and window title must be strings."
+
+    key = key.strip().upper()
+    expected_window_title = expected_window_title.strip().casefold()
+
+    if not expected_window_title:
+        return "Windows action error: expected window title cannot be empty."
+
+    if key not in ALLOWED_KEYS and key not in ALLOWED_SHORTCUTS:
+        return "Windows action error: key or shortcut is not permitted."
+
+    try:
+        active_window = pygetwindow.getActiveWindow()
+        if (
+            active_window is None
+            or expected_window_title not in active_window.title.casefold()
+        ):
+            return "Windows action error: expected window is not active."
+
+        if key in ALLOWED_SHORTCUTS:
+            pyautogui.hotkey(*ALLOWED_SHORTCUTS[key])
+        else:
+            pyautogui.press(key.lower())
+
+        return f"Sent {key} to the active {active_window.title} window."
+
+    except Exception:
+        return "Windows action error: keyboard action failed."

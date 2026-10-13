@@ -62,6 +62,9 @@ def call_model(state: AgentState) -> dict:
             "click_screen_position_tool only when the coordinates are known from "
             "a recent screen observation or explicitly supplied by the user. "
             "Never guess coordinates. "
+            "When the user requests a keyboard action, use "
+            "press_keyboard_action_tool with an approved key or shortcut and the "
+            "expected active window title. Never claim success if the tool returns an error. "
 
         )
     )
