@@ -100,7 +100,8 @@ def test_screen_vision_passes_latest_frame_bytes_to_vision():
             "What is visible?",
         )
 
-    assert result == "A blue screen."
+    assert result.startswith("A blue screen.\n")
+    assert f"Observation fingerprint: {observation.fingerprint}" in result
     analyze.assert_called_once_with(data, "What is visible?")
     assert service.captures == 1
 

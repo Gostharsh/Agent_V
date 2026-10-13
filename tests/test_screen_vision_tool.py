@@ -122,7 +122,9 @@ def test_screen_tool_analyzes_latest_observation():
         ) as describe:
             result = invoke_screen_tool(controller)
 
-        assert result["messages"][-1].content == "A blue desktop."
+        content = result["messages"][-1].content
+        assert content.startswith("A blue desktop.\n")
+        assert f"Observation fingerprint: {observation.fingerprint}" in content
         describe.assert_called_once_with(
             observation.frame.data,
             "Describe the screen",

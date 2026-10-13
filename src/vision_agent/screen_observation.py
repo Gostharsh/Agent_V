@@ -143,6 +143,65 @@ class ScreenObservationController:
             self._last_error = None
             return observation
 
+
+
+    def verify_observation_fingerprint(
+        self,
+        expected_fingerprint: str,
+    ) -> bool:
+        """Capture the screen and verify it still matches a decision frame."""
+        if (
+            not isinstance(expected_fingerprint, str)
+            or len(expected_fingerprint) != 64
+            or any(
+                character not in "0123456789abcdef"
+                for character in expected_fingerprint
+            )
+        ):
+            raise ValueError("Expected observation fingerprint is invalid")
+
+        with self._lock:
+            if not self._active:
+                raise RuntimeError("Screen observation is not active")
+
+            # The decision observation must still be available and fresh.
+            original = self.get_fresh_observation()
+
+            # Capture directly because poll() is throttled.
+            frame = self._capture_service.capture_once()
+
+            captured_at = frame.captured_at
+            if (
+                not isinstance(captured_at, datetime)
+                or captured_at.tzinfo is None
+                or captured_at.utcoffset() is None
+            ):
+                raise RuntimeError("Verification timestamp is invalid")
+
+            now = self._wall_clock()
+            if (
+                not isinstance(now, datetime)
+                or now.tzinfo is None
+                or now.utcoffset() is None
+            ):
+                raise RuntimeError(
+                    "Observation clock must return a timezone-aware datetime"
+                )
+
+            age_seconds = (now - captured_at).total_seconds()
+            if age_seconds < 0:
+                raise RuntimeError("Verification timestamp is in the future")
+            if age_seconds > 5.0:
+                raise RuntimeError("Verification capture is stale")
+
+            if original.fingerprint != expected_fingerprint:
+                return False
+
+            current_fingerprint = hashlib.sha256(frame.data).hexdigest()
+            return current_fingerprint == expected_fingerprint
+
+
+
     def get_fresh_observation(
         self,
         *,

@@ -222,6 +222,7 @@ def open_notepad_and_type_text(text: str) -> str:
 def click_screen_position_tool(
     x: int,
     y: int,
+    expected_fingerprint: str,
     runtime: ToolRuntime[ScreenObservationContext, dict],
 ) -> str:
     """Click a screen coordinate only with a fresh screen observation.
@@ -244,9 +245,19 @@ def click_screen_position_tool(
         )
 
     try:
-        controller.get_fresh_observation()
+        matches = controller.verify_observation_fingerprint(
+            expected_fingerprint
+        )
     except (RuntimeError, ValueError) as exc:
         return f"Mouse action error: {exc}"
+    except Exception:
+        return "Mouse action error: screen verification failed."
+
+    if not matches:
+        return (
+            "Mouse action error: screen changed since the decision "
+            "observation. Analyze the current screen again before clicking."
+        )
 
     return click_screen_position(x, y)
 

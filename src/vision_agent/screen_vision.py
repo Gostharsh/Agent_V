@@ -11,4 +11,11 @@ def analyze_current_screen(
 ) -> str:
     """Analyze a fresh screen observation without initiating capture."""
     observation = controller.get_fresh_observation()
-    return describe_image_bytes(observation.frame.data, question)
+    description = describe_image_bytes(
+        observation.frame.data,
+        question,
+    )
+    return (
+        f"{description}\n"
+        f"Observation fingerprint: {observation.fingerprint}"
+    )

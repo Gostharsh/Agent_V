@@ -65,6 +65,7 @@ def call_model(state: AgentState) -> dict:
             "When the user requests a keyboard action, use "
             "press_keyboard_action_tool with an approved key or shortcut and the "
             "expected active window title. Never claim success if the tool returns an error. "
+            "After analyzing the screen, pass the exact observation fingerprint returned by the analysis tool to the click tool. If verification reports that the screen changed, analyze the screen again and make a new decision. Never reuse coordinates from the previous observation. "
 
         )
     )
