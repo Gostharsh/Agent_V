@@ -194,7 +194,8 @@ def test_operations_are_rejected_after_close(app_setup):
 
 
 
-def test_default_thread_ids_are_unique(monkeypatch):
+
+def test_default_thread_ids_are_stable(monkeypatch):
     capture = FakeCaptureService()
     monkeypatch.setattr(
         application_module,
@@ -206,6 +207,33 @@ def test_default_thread_ids_are_unique(monkeypatch):
     second = VisionAgentApplication(owner_id="test-owner")
 
     try:
+        assert first._thread_id == second._thread_id
+        assert first._thread_id == "vision-agent-default"
+    finally:
+        first.close()
+        second.close()
+
+
+def test_explicit_thread_ids_are_preserved(monkeypatch):
+    capture = FakeCaptureService()
+    monkeypatch.setattr(
+        application_module,
+        "ScreenCaptureService",
+        lambda: capture,
+    )
+
+    first = VisionAgentApplication(
+        thread_id="conversation-a",
+        owner_id="test-owner",
+    )
+    second = VisionAgentApplication(
+        thread_id="conversation-b",
+        owner_id="test-owner",
+    )
+
+    try:
+        assert first._thread_id == "conversation-a"
+        assert second._thread_id == "conversation-b"
         assert first._thread_id != second._thread_id
     finally:
         first.close()

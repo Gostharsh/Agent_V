@@ -5,7 +5,7 @@ from langchain_ollama import ChatOllama
 from langgraph.graph import START, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
-from langgraph.checkpoint.memory import InMemorySaver
+from vision_agent.persistence import PersistentCheckpointer
 
 from vision_agent.tools import TOOLS, _evaluate_expression, calculator
 from vision_agent.screen_observation import ScreenObservationController
@@ -125,7 +125,13 @@ def build_graph(checkpointer=None):
     return graph.compile(checkpointer=checkpointer)
 
 
-agent = build_graph(checkpointer=InMemorySaver())
+_persistent_checkpointer = PersistentCheckpointer()
+agent = build_graph(checkpointer=_persistent_checkpointer.saver)
+
+
+def close_agent() -> None:
+    """Close the persistent checkpoint database."""
+    _persistent_checkpointer.close()
 
 
 def run_agent(

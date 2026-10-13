@@ -32,7 +32,9 @@ class VisionAgentApplication:
         if not isinstance(owner_id, str) or not owner_id.strip():
             raise ValueError("owner_id must be a non-empty string")
 
-        self._thread_id = thread_id if thread_id is not None else uuid4().hex
+        self._thread_id = (
+            thread_id if thread_id is not None else "vision-agent-default"
+        )
         self._owner_id = owner_id
 
         capture_service = ScreenCaptureService()
@@ -88,6 +90,7 @@ class VisionAgentApplication:
             self._observation.stop()
         finally:
             self._closed = True
+
 
     def _ensure_open(self) -> None:
         if self._closed:

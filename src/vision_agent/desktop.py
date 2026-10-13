@@ -272,7 +272,7 @@ from PySide6.QtWidgets import (
 )
 
 from vision_agent.application import VisionAgentApplication
-
+from vision_agent.graph import close_agent
 
 class OperationSignals(QObject):
     succeeded = Signal(str, str)
@@ -453,11 +453,16 @@ class VisionAgentWindow(QMainWindow):
             self._agent_app.close()
 
 
+
 def main() -> int:
     qt_app = QApplication.instance() or QApplication(sys.argv)
     window = VisionAgentWindow()
     window.show()
-    return qt_app.exec()
+
+    try:
+        return qt_app.exec()
+    finally:
+        close_agent()
 
 
 if __name__ == "__main__":
