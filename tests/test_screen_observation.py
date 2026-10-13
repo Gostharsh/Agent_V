@@ -1,6 +1,6 @@
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -64,13 +64,14 @@ class FakeClock:
         self.value += seconds
 
 
-def make_controller(frames=None, interval=1.0):
+def make_controller(frames=None, interval=1.0, wall_clock=None):
     clock = FakeClock()
     service = FakeCaptureService(frames)
     controller = ScreenObservationController(
         capture_service=service,
         min_interval_seconds=interval,
         clock=clock,
+        wall_clock=wall_clock,
     )
     return controller, service, clock
 
@@ -195,3 +196,106 @@ def test_invalid_refresh_interval_is_rejected(interval):
             capture_service=FakeCaptureService(),
             min_interval_seconds=interval,
         )
+
+
+def test_get_fresh_observation_accepts_recent_frame():
+    now = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+    frame = FakeFrame(b"fresh", captured_at=now - timedelta(seconds=2))
+    controller, _, _ = make_controller(
+        [frame],
+        wall_clock=lambda: now,
+    )
+    controller.start()
+    controller.poll()
+
+    assert controller.get_fresh_observation() is not None
+
+
+def test_get_fresh_observation_rejects_stale_frame():
+    now = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+    frame = FakeFrame(b"stale", captured_at=now - timedelta(seconds=6))
+    controller, _, _ = make_controller(
+        [frame],
+        wall_clock=lambda: now,
+    )
+    controller.start()
+    controller.poll()
+
+    with pytest.raises(RuntimeError, match="stale"):
+        controller.get_fresh_observation()
+
+
+def test_get_fresh_observation_rejects_missing_observation():
+    controller, _, _ = make_controller()
+    controller.start()
+
+    with pytest.raises(RuntimeError, match="observation"):
+        controller.get_fresh_observation()
+
+
+def test_get_fresh_observation_rejects_inactive_controller():
+    controller, _, _ = make_controller()
+
+    with pytest.raises(RuntimeError, match="active"):
+        controller.get_fresh_observation()
+
+
+def test_get_fresh_observation_rejects_future_timestamp():
+    now = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+    frame = FakeFrame(b"future", captured_at=now + timedelta(seconds=2))
+    controller, _, _ = make_controller(
+        [frame],
+        wall_clock=lambda: now,
+    )
+    controller.start()
+    controller.poll()
+
+    with pytest.raises(RuntimeError, match="future"):
+        controller.get_fresh_observation()
+
+
+@pytest.mark.parametrize(
+    "max_age_seconds",
+    [0, -1, float("nan"), float("inf"), True, "5"],
+)
+def test_get_fresh_observation_rejects_invalid_age_limit(max_age_seconds):
+    controller, _, _ = make_controller()
+
+    with pytest.raises(ValueError, match="age"):
+        controller.get_fresh_observation(max_age_seconds=max_age_seconds)
+
+
+
+def test_get_fresh_observation_rejects_naive_capture_timestamp():
+    now = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+    frame = FakeFrame(b"naive", captured_at=now.replace(tzinfo=None))
+    controller, _, _ = make_controller([frame], wall_clock=lambda: now)
+    controller.start()
+    controller.poll()
+
+    with pytest.raises(RuntimeError, match="timestamp"):
+        controller.get_fresh_observation()
+
+
+@pytest.mark.parametrize(
+    "wall_clock_result",
+    [
+        None,
+        "not-a-datetime",
+        datetime(2026, 1, 1, 12, 0),
+    ],
+)
+def test_get_fresh_observation_rejects_invalid_wall_clock(wall_clock_result):
+    frame = FakeFrame(
+        b"frame",
+        captured_at=datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc),
+    )
+    controller, _, _ = make_controller(
+        [frame],
+        wall_clock=lambda: wall_clock_result,
+    )
+    controller.start()
+    controller.poll()
+
+    with pytest.raises(RuntimeError, match="clock"):
+        controller.get_fresh_observation()
